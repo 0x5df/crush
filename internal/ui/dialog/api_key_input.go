@@ -291,7 +291,11 @@ func (m *APIKeyInput) verifyAPIKey() tea.Msg {
 		Type:    m.provider.Type,
 		BaseURL: m.provider.APIEndpoint,
 	}
-	err := providerConfig.TestConnection(m.com.Workspace.Resolver())
+	insecureTLS := false
+	if cfg := m.com.Workspace.Config(); cfg != nil {
+		insecureTLS = cfg.Options.InsecureTLS
+	}
+	err := providerConfig.TestConnection(m.com.Workspace.Resolver(), insecureTLS)
 
 	// intentionally wait for at least 750ms to make sure the user sees the spinner
 	elapsed := time.Since(start)

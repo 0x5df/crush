@@ -219,3 +219,17 @@ func TestStripV1Suffix(t *testing.T) {
 		require.Equal(t, tt.want, got, "stripV1Suffix(%q)", tt.input)
 	}
 }
+
+func TestSetInsecureTLS(t *testing.T) {
+	t.Cleanup(func() { SetInsecureTLS(false) })
+
+	SetInsecureTLS(true)
+	client := httpClient.Load()
+	transport, ok := client.Transport.(*http.Transport)
+	require.True(t, ok)
+	require.True(t, transport.TLSClientConfig.InsecureSkipVerify)
+
+	SetInsecureTLS(false)
+	client = httpClient.Load()
+	require.Nil(t, client.Transport)
+}

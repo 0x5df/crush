@@ -216,6 +216,23 @@ func TestOption_InvertedBool(t *testing.T) {
 	require.Equal(t, true, opts["disable_metrics"])
 }
 
+func TestOption_InsecureTLS(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	script := `option insecure-tls true`
+	path := filepath.Join(dir, "crushrc")
+
+	jsonBytes, err := LoadShellConfig(t.Context(), path, []byte(script))
+	require.NoError(t, err)
+
+	var result map[string]any
+	require.NoError(t, json.Unmarshal(jsonBytes, &result))
+
+	opts := result["options"].(map[string]any)
+	require.Equal(t, true, opts["insecure_tls"])
+}
+
 func TestOption_UnknownKey(t *testing.T) {
 	t.Parallel()
 

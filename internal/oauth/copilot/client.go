@@ -3,6 +3,7 @@ package copilot
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,14 +17,15 @@ var assistantRolePattern = regexp.MustCompile(`"role"\s*:\s*"assistant"`)
 
 // NewClient creates a new HTTP client with a custom transport that adds the
 // X-Initiator header based on message history in the request body.
-func NewClient(isSubAgent, debug bool) *http.Client {
+func NewClient(isSubAgent, debug, insecure bool) *http.Client {
 	return &http.Client{
-		Transport: &initiatorTransport{debug: debug, isSubAgent: isSubAgent},
+		Transport: &initiatorTransport{debug: debug, insecure: insecure, isSubAgent: isSubAgent},
 	}
 }
 
 type initiatorTransport struct {
 	debug      bool
+	insecure   bool
 	isSubAgent bool
 }
 
@@ -74,8 +76,19 @@ func (t *initiatorTransport) RoundTrip(req *http.Request) (*http.Response, error
 }
 
 func (t *initiatorTransport) roundTrip(req *http.Request) (*http.Response, error) {
-	if t.debug {
+	switch {
+	case t.debug:
 		return log.NewHTTPClient().Transport.RoundTrip(req)
+	case t.insecure:
+		return insecureTransport.RoundTrip(req)
+	default:
+		return http.DefaultTransport.RoundTrip(req)
 	}
-	return http.DefaultTransport.RoundTrip(req)
+}
+
+// insecureTransport skips TLS certificate verification for providers that
+// serve self-signed certificates.
+var insecureTransport = &http.Transport{
+	Proxy:           http.ProxyFromEnvironment,
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 }

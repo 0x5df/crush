@@ -617,6 +617,11 @@
           "description": "Disable sending metrics",
           "default": false
         },
+        "insecure_tls": {
+          "type": "boolean",
+          "description": "Skip TLS certificate verification for provider connections",
+          "default": false
+        },
         "initialize_as": {
           "type": "string",
           "description": "Name of the context file to create/update during project initialization",

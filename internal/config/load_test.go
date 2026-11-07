@@ -1925,6 +1925,28 @@ func TestConfig_setDefaultsDisableDefaultProvidersEnvVar(t *testing.T) {
 	})
 }
 
+func TestConfig_setDefaultsInsecureTLSEnvVar(t *testing.T) {
+	t.Run("sets option from environment variable", func(t *testing.T) {
+		t.Setenv("CRUSH_INSECURE_TLS", "true")
+
+		cfg := &Config{}
+		cfg.setDefaults("/tmp", "")
+
+		require.True(t, cfg.Options.InsecureTLS)
+	})
+
+	t.Run("does not override when env var is not set", func(t *testing.T) {
+		cfg := &Config{
+			Options: &Options{
+				InsecureTLS: true,
+			},
+		}
+		cfg.setDefaults("/tmp", "")
+
+		require.True(t, cfg.Options.InsecureTLS)
+	})
+}
+
 func TestConfig_configureSelectedModels(t *testing.T) {
 	t.Run("reload mode should not persist fallback defaults", func(t *testing.T) {
 		dir := t.TempDir()

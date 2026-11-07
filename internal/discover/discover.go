@@ -3,10 +3,12 @@ package discover
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"charm.land/catwalk/v3/pkg/catwalk"
@@ -15,7 +17,30 @@ import (
 // httpClient is shared across all discovery and enrichment calls. It
 // has a reasonable timeout so individual requests cannot block forever
 // even if the caller forgets to set a context deadline.
-var httpClient = &http.Client{Timeout: 10 * time.Second}
+var httpClient = atomic.Pointer[http.Client]{}
+
+func init() {
+	httpClient.Store(&http.Client{Timeout: 10 * time.Second})
+}
+
+// newHTTPClient builds the shared discovery client, optionally skipping TLS
+// certificate verification for providers serving self-signed certificates.
+func newHTTPClient(insecure bool) *http.Client {
+	client := &http.Client{Timeout: 10 * time.Second}
+	if insecure {
+		client.Transport = &http.Transport{
+			Proxy:           http.ProxyFromEnvironment,
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+	return client
+}
+
+// SetInsecureTLS reconfigures the shared discovery client to skip TLS
+// certificate verification. It is safe for concurrent use.
+func SetInsecureTLS(insecure bool) {
+	httpClient.Store(newHTTPClient(insecure))
+}
 
 // stripV1Suffix removes a trailing /v1 from a base URL. Enricher
 // endpoints (e.g. Ollama's /api/show, LM Studio's /api/v1/models) are
@@ -71,7 +96,7 @@ func doRequest(ctx context.Context, method, baseURL, path, apiKey string, extraH
 		req.Header.Set(k, resolved)
 	}
 
-	return httpClient.Do(req)
+	return httpClient.Load().Do(req)
 }
 
 // Config holds the provider configuration needed for model discovery.

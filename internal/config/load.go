@@ -797,6 +797,11 @@ func (c *Config) setDefaults(workingDir, dataDir string) {
 		c.Options.DisableDefaultProviders, _ = strconv.ParseBool(str)
 	}
 
+	if str, ok := os.LookupEnv("CRUSH_INSECURE_TLS"); ok {
+		c.Options.InsecureTLS, _ = strconv.ParseBool(str)
+	}
+	discover.SetInsecureTLS(c.Options.InsecureTLS)
+
 	if c.Options.Attribution == nil {
 		c.Options.Attribution = &Attribution{
 			TrailerStyle:  TrailerStyleAssistedBy,
